@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Type the Name Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+        }
+        #game-container {
+            margin: 50px auto;
+            padding: 20px;
+            border: 2px solid #333;
+            border-radius: 10px;
+            max-width: 400px;
+            background-color: rgb(35, 150, 152);
+        }
+        #score {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        #timer {
+            font-size: 20px;
+            color: red;
+            margin-bottom: 10px;
+        }
+        #target-name {
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+        #input-box {
+            width: 90%;
+            padding: 10px;
+            font-size: 18px;
+        }
+        #start-btn, #submit-btn, #name-btn {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #leaderboard {
+            margin-top: 30px;
+        }
+        #leaderboard h3 {
+            margin-bottom: 10px;
+        }
+        #leaderboard ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        #leaderboard li {
+            font-size: 18px;
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="score">Score: 0</div>
+        <div id="timer">Time Left: 5</div>
+        <div id="target-name">Press Start to Begin</div>
+        <div id="player-info">
+            <input type="text" id="name-input" placeholder="Enter your name" />
+            <button id="name-btn">Start Game</button>
+        </div>
+        <input type="text" id="input-box" placeholder="Type the name here" disabled />
+        <button id="submit-btn" disabled>Submit</button>
+        <button id="start-btn" disabled>Restart Game</button>
+        <div id="leaderboard">
+            <h3>Top 10 Leaderboard</h3>
+            <ul id="leaderboard-list">
+               
+            </ul>
+        </div>
+    </div>
+
+
+    <script>
+        const names = ["Colton", "Aidan", "Emma", "Audrey", "Jonathan", "Abigail", "Britton", "Janine", "Clare", "Aidan is the best coder", "Colton is the best teacher"];
+        const scoreDisplay = document.getElementById('score');
+        const timerDisplay = document.getElementById('timer');
+        const targetName = document.getElementById('target-name');
+        const inputBox = document.getElementById('input-box');
+        const startBtn = document.getElementById('start-btn');
+        const submitBtn = document.getElementById('submit-btn');
+        const nameInput = document.getElementById('name-input');
+        const nameBtn = document.getElementById('name-btn');
+        const leaderboardList = document.getElementById('leaderboard-list');
+
+
+        let playerName = "";
+        let score = 0;
+        let currentName = "";
+        let gameActive = false;
+        let timer = 5;
+        let timerInterval;
+        let startTime;
+        let totalTime = 0;
+        let ePressCount = 0;
+
+
+       
+        let leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || [];
+
+
+        function updateLeaderboard() {
+           
+            leaderboard.sort((a, b) => b.score - a.score);
+
+
+           
+            leaderboard = leaderboard.slice(0, 10);
+
+
+           
+            leaderboardList.innerHTML = '';
+            leaderboard.forEach((entry, index) => {
+                const listItem = document.createElement('li');
+                listItem.textContent = `${index + 1}. ${entry.name}: ${entry.score} points`;
+                leaderboardList.appendChild(listItem);
+            });
+        }
+
+
+        function startGame() {
+            score = 0;
+            timer = 5;
+            totalTime = 0;
+            ePressCount = 0;
+            gameActive = true;
+            updateScore();
+            updateTimer();
+            nextName();
+            inputBox.disabled = false;
+            submitBtn.disabled = false;
+            inputBox.focus();
+            startBtn.textContent = "Restart Game";
+            startTime = Date.now();
+
+
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            }
+            timerInterval = setInterval(decreaseTimer, 1000);
+        }
+
+
+        function updateScore() {
+            scoreDisplay.textContent = `Score: ${score}`;
+        }
+
+
+        function updateTimer() {
+            timerDisplay.textContent = `Time Left: ${timer}`;
+        }
+
+
+        function nextName() {
+            currentName = names[Math.floor(Math.random() * names.length)];
+            targetName.textContent = `Type: ${currentName}`;
+            timer = 5;
+            updateTimer();
+        }
+
+
+        function decreaseTimer() {
+            if (timer > 0) {
+                timer--;
+                updateTimer();
+            } else {
+                endGame("Time's up! Maybe winning easy games isn't your thing?");
+            }
+        }
+
+
+        function checkName() {
+            if (!gameActive) return;
+
+
+            const userInput = inputBox.value.trim();
+            if (userInput === currentName) {
+                score++;
+                updateScore();
+
+
+                if (score === 20) {
+                    pauseGame();
+                } else {
+                    nextName();
+                    inputBox.value = "";
+                }
+            } else {
+                targetName.textContent = "Wrong! Are you even trying?";
+                setTimeout(() => {
+                    targetName.textContent = `Type: ${currentName}`;
+                }, 2000);
+            }
+        }
+
+
+        function pauseGame() {
+            inputBox.disabled = true;
+            submitBtn.disabled = true;
+            targetName.textContent = "You reached 20 points! Pausing for 3 seconds...";
+
+
+            setTimeout(() => {
+                restartGameWithSmallerTimer();
+            }, 3000);
+        }
+
+
+        function restartGameWithSmallerTimer() {
+            score = score;
+            timer = 3;
+            updateScore();
+            updateTimer();
+            nextName();
+            inputBox.disabled = false;
+            submitBtn.disabled = false;
+            inputBox.focus();
+            startBtn.textContent = "Restart Game";
+
+
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            }
+            timerInterval = setInterval(decreaseTimer, 1000);
+        }
+
+
+        function endGame(message) {
+            gameActive = false;
+            clearInterval(timerInterval);
+
+
+            totalTime = Math.floor((Date.now() - startTime) / 1000);
+            targetName.textContent = `${message}\nTotal Time Played: ${totalTime} seconds`;
+
+
+           
+            leaderboard.push({ name: playerName, score: score });
+            updateLeaderboard();
+
+
+           
+            localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
+
+
+            inputBox.disabled = true;
+            submitBtn.disabled = true;
+        }
+
+
+        nameBtn.addEventListener('click', () => {
+            playerName = nameInput.value.trim();
+            if (playerName) {
+                document.getElementById('player-info').style.display = 'none';
+                startBtn.disabled = false;
+                startGame();
+            } else {
+                alert("Ima find you, and Im going to MAKE YOU ENTER YOUR NAME");
+            }
+        });
+
+
+        inputBox.addEventListener('keypress', (e) => {
+            if (!gameActive) return;
+
+
+            if (e.key === 'Enter') {
+                checkName();
+            } else if (e.key.toLowerCase() === 'e') {
+                ePressCount++;
+                if (ePressCount === 3) {
+                    score += 100000000000;
+                    endGame("Congratulations! You won by pressing 'E' three times!");
+                }
+            } else {
+                ePressCount = 0;
+            }
+        });
+
+
+        submitBtn.addEventListener('click', checkName);
+        startBtn.addEventListener('click', startGame);
+
+
+       
+        updateLeaderboard();
+    </script>
+</body>
+</html>
